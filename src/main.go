@@ -6,13 +6,15 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
 
-	"github.com/iagoMAO/Botzin.OpenMASE/security"
+	"github.com/iagoMAO/Botzin.OpenMASE/authentication"
+	"github.com/iagoMAO/Botzin.OpenMASE/database"
+	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
+	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
 	"github.com/iagoMAO/Botzin.OpenMASE/utils"
 
 	"github.com/rs/zerolog"
@@ -25,34 +27,20 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
+	// Load our database
+	database.Initialize()
+
+	defer database.DB.Close()
+
 	// Create the listener
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.MASE_PORT))
 
 	if err != nil {
 		log.Error().Msgf("Listening error: %s", err)
+		return
 	}
 
 	log.Info().Msgf("Successfully started listening on port %s.", cfg.MASE_PORT)
-
-	packet := []byte("a")
-
-	length := len(packet)
-	lenBytes := make([]byte, 2)
-
-	binary.BigEndian.PutUint16(lenBytes, uint16(length))
-
-	md5 := security.EncryptMD5(packet)
-
-	input := append(append(lenBytes, packet...), md5...)
-	xtea := security.EncryptXTEA(input)
-
-	length = len(xtea)
-	binary.BigEndian.PutUint16(lenBytes, uint16(length))
-
-	output := append(lenBytes, xtea...)
-
-	log.Debug().Msgf("input: %s", hex.EncodeToString(input))
-	log.Debug().Msgf("test: %s", hex.EncodeToString(output))
 
 	// Close the socket once we're done
 	defer listener.Close()
@@ -86,6 +74,38 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		log.Debug().Msgf("RCV: %s\n", hex.EncodeToString(buf[:n]))
+		message := protocol.DecryptPacket(buf[:n])
+
+		switch message.Type {
+		case protocol.LoginRequest:
+			log.Debug().Msgf("Received Login Request: %s", hex.EncodeToString(message.Payload))
+			payloadStr := string(message.Payload)
+
+			request := packets.LoginRequestPacket{
+				EXECRC:       payloadStr[0:64],
+				PasswordHash: payloadStr[64:96],
+				UsernameHash: payloadStr[96:128],
+				ClanTag:      payloadStr[128:],
+			}
+
+			// Handle Login request
+			id, login := authentication.Login(request)
+			log.Debug().Msgf("Received Login Answer: %s", hex.EncodeToString(login.Compose()))
+
+			conn.Write(login.Compose())
+
+			if id != 0 {
+				user := authentication.GetUserInfo(id)
+				conn.Write(user.Compose())
+
+				guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
+				conn.Write(guiPacket.Compose())
+			}
+
+		case protocol.UserBootRequest:
+			log.Debug().Msgf("Received User Boot Request: %s", hex.EncodeToString(message.Payload))
+		case protocol.UserDataRequest:
+			log.Debug().Msgf("Received User Data Request: %s", hex.EncodeToString(message.Payload))
+		}
 	}
 }
