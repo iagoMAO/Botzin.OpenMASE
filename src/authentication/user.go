@@ -6,7 +6,16 @@ import (
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
+	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 )
+
+type AvatarAttrib struct {
+	XP int
+	ST int
+	DX int
+	IQ int
+	HT int
+}
 
 type UserInfo struct {
 	Nick        string
@@ -16,13 +25,38 @@ type UserInfo struct {
 	IQ          int
 	HT          int
 	PromoButton string
-	Points      string
-	Credits     string
-	Gold        string
-	Ranking     string
-	TotalRK     string
-	Level       string
-	PMX         string
+	Points      int
+	Credits     int
+	Gold        int
+	Ranking     int
+	TotalRK     int
+	Level       int
+	PMX         int
+}
+
+func GetAvatarAttrib(id int) packets.AvatarAttribLoadAnswerPacket {
+	row := database.DB.QueryRow("SELECT xp, st, dx, iq, ht FROM users WHERE id = ?", id)
+	var u AvatarAttrib
+	err := row.Scan(
+		&u.XP,
+		&u.ST,
+		&u.DX,
+		&u.IQ,
+		&u.HT,
+	)
+
+	if err != nil {
+		log.Error().Msgf("Error: %s", err)
+		return packets.AvatarAttribLoadAnswerPacket{}
+	}
+
+	return packets.AvatarAttribLoadAnswerPacket{
+		XP: string(data.SCR_PackInt(u.XP)),
+		ST: string(data.SCR_PackInt(u.ST)),
+		DX: string(data.SCR_PackInt(u.DX)),
+		IQ: string(data.SCR_PackInt(u.IQ)),
+		HT: string(data.SCR_PackInt(u.HT)),
+	}
 }
 
 func GetUserInfo(id int) packets.UserDataAnswerPacket {
@@ -59,13 +93,13 @@ func GetUserInfo(id int) packets.UserDataAnswerPacket {
 			IQ:          u.IQ,
 			HT:          u.HT,
 			PromoButton: "",
-			Points:      u.Points,
-			Credits:     u.Credits,
-			Gold:        u.Gold,
-			Ranking:     u.Ranking,
-			TotalRK:     u.TotalRK,
-			Level:       u.Level,
-			PMX:         u.PMX,
+			Points:      string(data.SCR_PackInt(u.Points)),
+			Credits:     string(data.SCR_PackInt(u.Credits)),
+			Gold:        string(data.SCR_PackInt(u.Gold)),
+			Ranking:     string(data.SCR_PackInt(u.Ranking)),
+			TotalRK:     string(data.SCR_PackInt(u.TotalRK)),
+			Level:       string(data.SCR_PackInt(u.Level)),
+			PMX:         string(data.SCR_PackInt(u.PMX)),
 		},
 	}
 }

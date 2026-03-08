@@ -96,7 +96,10 @@ func handleConnection(conn net.Conn) {
 
 			if id != 0 {
 				user := authentication.GetUserInfo(id)
+				attribs := authentication.GetAvatarAttrib(id)
+
 				conn.Write(user.Compose())
+				conn.Write(attribs.Compose())
 
 				guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
 				conn.Write(guiPacket.Compose())
