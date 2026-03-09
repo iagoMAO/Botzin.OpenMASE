@@ -10,12 +10,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/iagoMAO/Botzin.OpenMASE/authentication"
+	"github.com/iagoMAO/Botzin.OpenMASE/avatar"
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
+	"github.com/iagoMAO/Botzin.OpenMASE/shop"
 	"github.com/iagoMAO/Botzin.OpenMASE/utils"
+	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -59,6 +63,7 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	// Close once we're done, again
+	defer RemoveSession(conn)
 	defer conn.Close()
 
 	// TODO: Maybe make this configurable?
@@ -95,20 +100,61 @@ func handleConnection(conn net.Conn) {
 			conn.Write(login.Compose())
 
 			if id != 0 {
-				user := authentication.GetUserInfo(id)
-				attribs := authentication.GetAvatarAttrib(id)
+				CreateSession(conn, id)
 
-				conn.Write(user.Compose())
+				attribs := avatar.GetAvatarAttrib(id)
+				avatar := avatar.GetAvatarInfo(id)
+
 				conn.Write(attribs.Compose())
+				conn.Write(avatar.Compose())
 
 				guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
 				conn.Write(guiPacket.Compose())
 			}
-
 		case protocol.UserBootRequest:
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			user := authentication.GetUserInfo(session.UserId)
+			conn.Write(user.Compose())
+
 			log.Debug().Msgf("Received User Boot Request: %s", hex.EncodeToString(message.Payload))
 		case protocol.UserDataRequest:
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			user := authentication.GetUserInfo(session.UserId)
+			conn.Write(user.Compose())
+
 			log.Debug().Msgf("Received User Data Request: %s", hex.EncodeToString(message.Payload))
+		case protocol.ShopBuyRequest:
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			log.Debug().Msgf("Received Shop Buy Request from User Id %d", session.UserId)
+
+			itemId, err := strconv.Atoi(data.SCR_UnpackInt(message.Payload[1:]))
+
+			if err != nil {
+				log.Error().Msgf("Errorrr: %s", err)
+				return
+			}
+
+			packet := shop.BuyItem(session.UserId, itemId)
+			conn.Write(packet.Compose())
+
+		default:
+			session := GetSession(conn)
+			log.Debug().Msgf("Received Packet Type from User Id %d", session.UserId)
 		}
 	}
 }

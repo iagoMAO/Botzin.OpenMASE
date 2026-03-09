@@ -15,33 +15,6 @@ type UserDataRequestPacket struct {
 	ClanTag      string
 }
 
-type AvatarAttribLoadAnswerPacket struct {
-	XP string
-	ST string
-	DX string
-	IQ string
-	HT string
-}
-
-func (p AvatarAttribLoadAnswerPacket) Compose() []byte {
-	var buf bytes.Buffer
-
-	buf.WriteString(p.XP)
-	buf.WriteByte(0x09)
-	buf.WriteString(p.ST)
-	buf.WriteByte(0x09)
-	buf.WriteString(p.DX)
-	buf.WriteByte(0x09)
-	buf.WriteString(p.IQ)
-	buf.WriteByte(0x09)
-	buf.WriteString(p.HT)
-	buf.WriteByte(0x09)
-
-	log.Println(hex.EncodeToString(buf.Bytes()))
-
-	return protocol.EncryptPacket(protocol.AvatarAttribLoadAnswer, buf.Bytes(), protocol.MASE_OK)
-}
-
 type PacketUserInfo struct {
 	Nick        string
 	XP          int

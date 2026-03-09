@@ -9,6 +9,31 @@ import (
 
 var DB *sql.DB
 
+func itemsTable(db *sql.DB) {
+	sqlStmt := `
+    CREATE TABLE IF NOT EXISTS items (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        class INT DEFAULT 0,
+		name TEXT,
+        description TEXT,
+		payload TEXT,
+		st INT DEFAULT 0,
+		dx INT DEFAULT 0,
+		iq INT DEFAULT 0,
+		ht INT DEFAULT 0,
+		credits INT DEFAULT 0,
+		gold INT DEFAULT 0,
+		can_sell INT DEFAULT 0
+    );
+    `
+	_, err := db.Exec(sqlStmt)
+	if err != nil {
+		log.Error().Msgf("Error creating items table: %s", err)
+		return
+	}
+
+	log.Info().Msg("Items table created successfully")
+}
 func usersTable(db *sql.DB) {
 	sqlStmt := `
     CREATE TABLE IF NOT EXISTS users (
@@ -40,6 +65,33 @@ func usersTable(db *sql.DB) {
 	log.Info().Msg("Users table created successfully")
 }
 
+func userItemsTable(db *sql.DB) {
+	sqlStmt := `
+    CREATE TABLE IF NOT EXISTS user_items (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+		class INTEGER NOT NULL,
+		st INTEGER NOT NULL,
+		dx INTEGER NOT NULL,
+		iq INTEGER NOT NULL,
+		ht INTEGER NOT NULL,
+		payload INTEGER NOT NULL,
+		the_gen INTEGER NOT NULL,
+		enabled INTEGER NOT NULL DEFAULT 0,
+		FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+		FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
+    );
+    `
+	_, err := db.Exec(sqlStmt)
+	if err != nil {
+		log.Error().Msgf("Error creating user_items table: %s", err)
+		return
+	}
+
+	log.Info().Msg("UserItems table created successfully")
+}
+
 func Initialize() {
 	var err error
 	DB, err = sql.Open("sqlite3", "./botzin.db")
@@ -50,4 +102,6 @@ func Initialize() {
 	}
 
 	usersTable(DB)
+	itemsTable(DB)
+	userItemsTable(DB)
 }

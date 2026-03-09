@@ -9,14 +9,6 @@ import (
 	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 )
 
-type AvatarAttrib struct {
-	XP int
-	ST int
-	DX int
-	IQ int
-	HT int
-}
-
 type UserInfo struct {
 	Nick        string
 	XP          int
@@ -32,31 +24,6 @@ type UserInfo struct {
 	TotalRK     int
 	Level       int
 	PMX         int
-}
-
-func GetAvatarAttrib(id int) packets.AvatarAttribLoadAnswerPacket {
-	row := database.DB.QueryRow("SELECT xp, st, dx, iq, ht FROM users WHERE id = ?", id)
-	var u AvatarAttrib
-	err := row.Scan(
-		&u.XP,
-		&u.ST,
-		&u.DX,
-		&u.IQ,
-		&u.HT,
-	)
-
-	if err != nil {
-		log.Error().Msgf("Error: %s", err)
-		return packets.AvatarAttribLoadAnswerPacket{}
-	}
-
-	return packets.AvatarAttribLoadAnswerPacket{
-		XP: string(data.SCR_PackInt(u.XP)),
-		ST: string(data.SCR_PackInt(u.ST)),
-		DX: string(data.SCR_PackInt(u.DX)),
-		IQ: string(data.SCR_PackInt(u.IQ)),
-		HT: string(data.SCR_PackInt(u.HT)),
-	}
 }
 
 func GetUserInfo(id int) packets.UserDataAnswerPacket {

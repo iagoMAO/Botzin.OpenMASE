@@ -9,6 +9,7 @@ func SCR_UnpackInt(data []byte) string {
 
 	for _, b := range data {
 		// Remove the +32 offset
+
 		val := int(b) - 32
 
 		// Format the number back to a string.
@@ -16,6 +17,7 @@ func SCR_UnpackInt(data []byte) string {
 
 		// If it's not the very first chunk, we MUST pad it with a leading zero
 		// if the integer was less than 10 (e.g., converting 5 back to "05").
+
 		if len(result) > 0 && val < 10 {
 			strVal = "0" + strVal
 		}
