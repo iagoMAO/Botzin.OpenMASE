@@ -2,8 +2,6 @@ package packets
 
 import (
 	"bytes"
-	"encoding/hex"
-	"log"
 
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
@@ -38,8 +36,6 @@ func (p ShopBuyAnswerPacket) Compose() []byte {
 	buf.Write(data.SCR_PackInt(p.Item.TheGen))
 	buf.WriteByte(0x09)
 	buf.Write(data.SCR_PackInt(p.Item.Enabled))
-
-	log.Println(hex.EncodeToString(buf.Bytes()))
 
 	return protocol.EncryptPacket(protocol.ShopBuyAnswer, buf.Bytes(), protocol.MASE_OK)
 }

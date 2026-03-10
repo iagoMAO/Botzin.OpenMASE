@@ -4,6 +4,7 @@ import (
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
+	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 )
 
 // We receive a login request packet & return the answer packet
@@ -23,8 +24,8 @@ func Login(packet packets.LoginRequestPacket) (int, protocol.Packet) {
 		// We can login!
 		return id, packets.LoginAnswerPacket{
 			StatusCode:  protocol.MASE_OK,
-			MagicNumber: uint32(id),
-			ClientGUID:  uint32(id),
+			MagicNumber: data.SCR_PackInt(id),
+			ClientGUID:  data.SCR_PackInt(id),
 		}
 	}
 

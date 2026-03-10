@@ -26,7 +26,29 @@ type UserInfo struct {
 	PMX         int
 }
 
-func GetUserInfo(id int) packets.UserDataAnswerPacket {
+func GetUserInfo(id int) packets.PacketUserInfo {
+	row := database.DB.QueryRow("SELECT username, xp, st, dx, iq, ht, level, ranking FROM users WHERE id = ?", id)
+	var u packets.PacketUserInfo
+	err := row.Scan(
+		&u.Nick,
+		&u.XP,
+		&u.ST,
+		&u.DX,
+		&u.IQ,
+		&u.HT,
+		&u.Level,
+		&u.Ranking,
+	)
+
+	if err != nil {
+		log.Error().Msgf("Error: %s", err)
+		return packets.PacketUserInfo{}
+	}
+
+	return u
+}
+
+func GetUserInfoPacket(id int) packets.UserDataAnswerPacket {
 	row := database.DB.QueryRow("SELECT username, xp, st, dx, iq, ht, points, credits, gold, ranking, totalRK, level, pmx FROM users WHERE id = ?", id)
 	var u UserInfo
 	err := row.Scan(

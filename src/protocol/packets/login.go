@@ -1,6 +1,8 @@
 package packets
 
 import (
+	"bytes"
+
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 )
 
@@ -13,8 +15,8 @@ type LoginRequestPacket struct {
 
 type LoginAnswerPacket struct {
 	StatusCode  protocol.StatusCode
-	MagicNumber uint32
-	ClientGUID  uint32
+	MagicNumber []byte
+	ClientGUID  []byte
 }
 
 type LoginErrorPacket struct {
@@ -30,11 +32,11 @@ func (p LoginErrorPacket) Compose() []byte {
 }
 
 func (p LoginAnswerPacket) Compose() []byte {
-	data := []byte{
-		uint8(p.MagicNumber),
-		0x09,
-		uint8(p.ClientGUID),
-	}
+	var buf bytes.Buffer
 
-	return protocol.EncryptPacket(protocol.LoginAnswer, data, protocol.MASE_OK)
+	buf.Write(p.MagicNumber)
+	buf.WriteByte(0x09)
+	buf.Write(p.ClientGUID)
+
+	return protocol.EncryptPacket(protocol.LoginAnswer, buf.Bytes(), protocol.MASE_OK)
 }

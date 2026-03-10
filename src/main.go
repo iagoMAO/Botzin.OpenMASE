@@ -101,15 +101,6 @@ func handleConnection(conn net.Conn) {
 
 			if id != 0 {
 				CreateSession(conn, id)
-
-				attribs := avatar.GetAvatarAttrib(id)
-				avatar := avatar.GetAvatarInfo(id)
-
-				conn.Write(attribs.Compose())
-				conn.Write(avatar.Compose())
-
-				guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
-				conn.Write(guiPacket.Compose())
 			}
 		case protocol.UserBootRequest:
 			session := GetSession(conn)
@@ -118,10 +109,17 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 
-			user := authentication.GetUserInfo(session.UserId)
-			conn.Write(user.Compose())
+			user := authentication.GetUserInfoPacket(session.UserId)
+			attribs := avatar.GetAvatarAttrib(session.UserId)
+			avatar := avatar.GetAvatarInfo(session.UserId)
+			guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
 
-			log.Debug().Msgf("Received User Boot Request: %s", hex.EncodeToString(message.Payload))
+			conn.Write(user.Compose())
+			conn.Write(attribs.Compose())
+			conn.Write(avatar.Compose())
+			conn.Write(guiPacket.Compose())
+
+			log.Debug().Msgf("Received User Boot Request: %s from User %d", hex.EncodeToString(message.Payload), session.UserId)
 		case protocol.UserDataRequest:
 			session := GetSession(conn)
 
@@ -129,10 +127,10 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 
-			user := authentication.GetUserInfo(session.UserId)
+			user := authentication.GetUserInfoPacket(session.UserId)
 			conn.Write(user.Compose())
 
-			log.Debug().Msgf("Received User Data Request: %s", hex.EncodeToString(message.Payload))
+			log.Debug().Msgf("Received User Data Request: %s from User %d", hex.EncodeToString(message.Payload), session.UserId)
 		case protocol.ShopBuyRequest:
 			session := GetSession(conn)
 
@@ -145,16 +143,33 @@ func handleConnection(conn net.Conn) {
 			itemId, err := strconv.Atoi(data.SCR_UnpackInt(message.Payload[1:]))
 
 			if err != nil {
-				log.Error().Msgf("Errorrr: %s", err)
 				return
 			}
 
 			packet := shop.BuyItem(session.UserId, itemId)
 			conn.Write(packet.Compose())
+		case protocol.ServerQueryAvatarRequest:
+			session := GetSession(conn)
 
+			if session == nil {
+				return
+			}
+
+			userId, err := strconv.Atoi(data.SCR_UnpackInt(message.Payload[1:]))
+
+			if err != nil {
+				return
+			}
+
+			avatarData := avatar.GetAvatarSetupData(userId)
+
+			conn.Write(avatarData.Compose())
 		default:
 			session := GetSession(conn)
-			log.Debug().Msgf("Received Packet Type from User Id %d", session.UserId)
+
+			if session != nil {
+				log.Debug().Msgf("Received Packet Type %d from User Id %d", message.Type.Code(), session.UserId)
+			}
 		}
 	}
 }

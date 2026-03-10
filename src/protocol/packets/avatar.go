@@ -2,8 +2,6 @@ package packets
 
 import (
 	"bytes"
-	"encoding/hex"
-	"log"
 
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
@@ -27,18 +25,31 @@ type AvatarSetupLoadAnswerPacket struct {
 	Items            []AvatarItemData
 }
 
-func (p AvatarSetupLoadAnswerPacket) Compose() []byte {
+type ServerQueryAvatarAnswerPacket struct {
+	ClientGUID       int
+	TotalAvatarItems int
+	Items            []AvatarItemData
+	Nick             string
+	ST               int
+	DX               int
+	IQ               int
+	HT               int
+	XP               int
+	patent           int
+	ranking          int
+}
+
+func createItemsPayload(totalItems int, items []AvatarItemData) []byte {
 	var buf bytes.Buffer
 
-	buf.Write(data.SCR_PackInt(p.TotalAvatarItems))
+	buf.Write(data.SCR_PackInt(totalItems))
 
-	if p.TotalAvatarItems <= 0 {
-		return protocol.EncryptPacket(protocol.AvatarSetupLoadAnswer, buf.Bytes(), protocol.MASE_OK)
+	if totalItems <= 0 {
+		return buf.Bytes()
 	}
 
-	buf.WriteByte(0x09)
-
-	for _, item := range p.Items {
+	for _, item := range items {
+		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Class))
 		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Id))
@@ -59,7 +70,51 @@ func (p AvatarSetupLoadAnswerPacket) Compose() []byte {
 		buf.WriteByte(0x0A)
 	}
 
-	log.Println(hex.EncodeToString(buf.Bytes()))
+	return buf.Bytes()
+}
+
+func (p ServerQueryAvatarAnswerPacket) Compose() []byte {
+	var buf bytes.Buffer
+
+	buf.Write(data.SCR_PackInt(p.ClientGUID))
+	buf.WriteByte(0x09)
+	buf.Write([]byte(p.Nick))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.ST))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.DX))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.IQ))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.HT))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.XP))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.patent))
+	buf.WriteByte(0x09)
+	buf.Write(data.SCR_PackInt(p.ranking))
+
+	if p.TotalAvatarItems > 0 {
+		buf.WriteByte(0x09)
+		itemsData := createItemsPayload(p.TotalAvatarItems, p.Items)
+		buf.Write(itemsData)
+	}
+
+	return protocol.EncryptPacket(protocol.ServerQueryAvatarAnswer, buf.Bytes(), protocol.MASE_OK)
+}
+
+func (p AvatarSetupLoadAnswerPacket) Compose() []byte {
+	var buf bytes.Buffer
+
+	buf.Write(data.SCR_PackInt(p.TotalAvatarItems))
+
+	if p.TotalAvatarItems <= 0 {
+		return protocol.EncryptPacket(protocol.AvatarSetupLoadAnswer, buf.Bytes(), protocol.MASE_OK)
+	}
+
+	itemsData := createItemsPayload(p.TotalAvatarItems, p.Items)
+
+	buf.Write(itemsData)
 
 	return protocol.EncryptPacket(protocol.AvatarSetupLoadAnswer, buf.Bytes(), protocol.MASE_OK)
 }
@@ -85,8 +140,6 @@ func (p AvatarAttribLoadAnswerPacket) Compose() []byte {
 	buf.WriteByte(0x09)
 	buf.WriteString(p.HT)
 	buf.WriteByte(0x09)
-
-	log.Println(hex.EncodeToString(buf.Bytes()))
 
 	return protocol.EncryptPacket(protocol.AvatarAttribLoadAnswer, buf.Bytes(), protocol.MASE_OK)
 }

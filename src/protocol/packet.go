@@ -59,8 +59,6 @@ func EncryptPacket(packetType PacketCode, packetData []byte, statusCode StatusCo
 		0x09,
 	}, packetData...)
 
-	log.Debug().Msgf("before encryption: %s", hex.EncodeToString(packetData))
-
 	length := len(packetData)
 	lenBytes := make([]byte, 2)
 
@@ -75,9 +73,6 @@ func EncryptPacket(packetType PacketCode, packetData []byte, statusCode StatusCo
 	binary.BigEndian.PutUint16(lenBytes, uint16(length))
 
 	output := append(lenBytes, xtea...)
-
-	log.Debug().Msgf("input: %s", hex.EncodeToString(input))
-	log.Debug().Msgf("encrypted: %s", hex.EncodeToString(output))
 
 	return output
 }

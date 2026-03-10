@@ -21,6 +21,7 @@ func itemsTable(db *sql.DB) {
 		dx INT DEFAULT 0,
 		iq INT DEFAULT 0,
 		ht INT DEFAULT 0,
+		the_gen INT DEFAULT 0,
 		credits INT DEFAULT 0,
 		gold INT DEFAULT 0,
 		can_sell INT DEFAULT 0
@@ -71,13 +72,6 @@ func userItemsTable(db *sql.DB) {
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         item_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-		class INTEGER NOT NULL,
-		st INTEGER NOT NULL,
-		dx INTEGER NOT NULL,
-		iq INTEGER NOT NULL,
-		ht INTEGER NOT NULL,
-		payload INTEGER NOT NULL,
-		the_gen INTEGER NOT NULL,
 		enabled INTEGER NOT NULL DEFAULT 0,
 		FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE

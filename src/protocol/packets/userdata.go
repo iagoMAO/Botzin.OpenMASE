@@ -2,8 +2,6 @@ package packets
 
 import (
 	"bytes"
-	"encoding/hex"
-	"log"
 
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 )
@@ -70,8 +68,6 @@ func (p UserDataAnswerPacket) Compose() []byte {
 	buf.WriteString(p.UserInfo.Level)
 	buf.WriteByte(0x09)
 	buf.WriteString(p.UserInfo.PMX)
-
-	log.Println(hex.EncodeToString(buf.Bytes()))
 
 	return protocol.EncryptPacket(protocol.UserDataAnswer, buf.Bytes(), p.StatusCode)
 }
