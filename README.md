@@ -2,8 +2,8 @@
 Reimplementação/emulador de servidor do finado MMO brasileiro Botzin!!! da Green Land Studios. 
 
 <p align="left">
-  <img style="max-height: 256px" src="docs/img/screenshot3.png" alt="Botzin!!! 1.17">
-  <img style="max-height: 256px" src="docs/img/screenshot2.png" alt="Botzin!!! 1.17">
+  <img style="max-height: 128px" src="docs/img/screenshot3.png" alt="Botzin!!! 1.17">
+  <img style="max-height: 128px" src="docs/img/screenshot2.png" alt="Botzin!!! 1.17">
 </p>
 
 <p align="left">
