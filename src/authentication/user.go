@@ -81,7 +81,7 @@ func GetUserInfoPacket(id int) packets.UserDataAnswerPacket {
 			DX:          u.DX,
 			IQ:          u.IQ,
 			HT:          u.HT,
-			PromoButton: "",
+			PromoButton: "1",
 			Points:      string(data.SCR_PackInt(u.Points)),
 			Credits:     string(data.SCR_PackInt(u.Credits)),
 			Gold:        string(data.SCR_PackInt(u.Gold)),

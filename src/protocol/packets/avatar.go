@@ -44,12 +44,13 @@ func createItemsPayload(totalItems int, items []AvatarItemData) []byte {
 
 	buf.Write(data.SCR_PackInt(totalItems))
 
+	buf.WriteByte(0x09)
+
 	if totalItems <= 0 {
 		return buf.Bytes()
 	}
 
-	for _, item := range items {
-		buf.WriteByte(0x09)
+	for i, item := range items {
 		buf.Write(data.SCR_PackInt(item.Class))
 		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Id))
@@ -67,7 +68,10 @@ func createItemsPayload(totalItems int, items []AvatarItemData) []byte {
 		buf.Write(data.SCR_PackInt(item.TheGen))
 		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Enabled))
-		buf.WriteByte(0x0A)
+
+		if i != (len(items) - 1) {
+			buf.WriteByte(0x0A)
+		}
 	}
 
 	return buf.Bytes()
@@ -106,9 +110,8 @@ func (p ServerQueryAvatarAnswerPacket) Compose() []byte {
 func (p AvatarSetupLoadAnswerPacket) Compose() []byte {
 	var buf bytes.Buffer
 
-	buf.Write(data.SCR_PackInt(p.TotalAvatarItems))
-
 	if p.TotalAvatarItems <= 0 {
+		buf.Write(data.SCR_PackInt(p.TotalAvatarItems))
 		return protocol.EncryptPacket(protocol.AvatarSetupLoadAnswer, buf.Bytes(), protocol.MASE_OK)
 	}
 
