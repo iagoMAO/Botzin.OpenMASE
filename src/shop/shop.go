@@ -1,32 +1,44 @@
 package shop
 
 import (
+	"github.com/rs/zerolog/log"
+
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
 )
 
 func BuyItem(userId int, itemId int) packets.ShopBuyAnswerPacket {
-	var userCredits, userGold, itemCredits, itemGold int
+	var userCredits, userGold, itemCredits, itemGold, count int
 
-	row := database.DB.QueryRow("SELECT credits, gold FROM users WHERE id = ?", userId)
+	row := database.DB.QueryRow("SELECT COUNT(*) FROM user_items WHERE item_id = ? AND user_id = ?", itemId, userId)
 
-	err := row.Scan(&userCredits, &userGold)
+	err := row.Scan(&count)
+
+	if err != nil || count != 0 {
+		log.Debug().Msgf("Error: %d - %d", itemId, userId)
+		return packets.ShopBuyAnswerPacket{ShopBuyAnswerType: protocol.SHOP_ALREADY_HAVE}
+	}
+
+	row = database.DB.QueryRow("SELECT credits, gold FROM users WHERE id = ?", userId)
+
+	err = row.Scan(&userCredits, &userGold)
 
 	if err != nil {
 		return packets.ShopBuyAnswerPacket{}
 	}
 
-	row = database.DB.QueryRow("SELECT class, payload, st, dx, iq, ht, credits, gold FROM items WHERE id = ?", itemId)
+	row = database.DB.QueryRow("SELECT credits, gold FROM items WHERE id = ?", itemId)
 
 	item := packets.AvatarItemData{
 		Id:     itemId,
 		UserId: userId,
 	}
 
-	err = row.Scan(&item.Class, &item.Payload, &item.ST, &item.DX, &item.IQ, &item.HT, &itemCredits, &itemGold)
+	err = row.Scan(&itemCredits, &itemGold)
 
 	if err != nil {
+		log.Debug().Msgf("Error: %s", err.Error())
 		return packets.ShopBuyAnswerPacket{}
 	}
 
@@ -38,9 +50,23 @@ func BuyItem(userId int, itemId int) packets.ShopBuyAnswerPacket {
 		return packets.ShopBuyAnswerPacket{ShopBuyAnswerType: protocol.SHOP_NO_GOLD}
 	}
 
-	query := "INSERT INTO user_items (item_id, user_id, class, st, dx, iq, ht, payload, the_gen, enabled) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "UPDATE users SET credits = ?, gold = ? WHERE id = ?"
 
-	database.DB.Exec(query, itemId, userId, item.Class, item.ST, item.DX, item.IQ, item.HT, item.Payload, 1, 0)
+	_, err = database.DB.Exec(query, (userCredits - itemCredits), (userGold - itemGold), userId)
+
+	if err != nil {
+		log.Debug().Msgf("Error: %s", err.Error())
+	}
+
+	query = "INSERT INTO user_items (item_id, user_id, enabled) VALUES(?, ?, ?)"
+
+	_, err = database.DB.Exec(query, itemId, userId, 0)
+
+	if err != nil {
+		log.Debug().Msgf("Error: %s", err.Error())
+	}
+
+	log.Debug().Msgf("Item: %d", itemId)
 
 	return packets.ShopBuyAnswerPacket{
 		ShopBuyAnswerType: protocol.SHOP_BUY_DONE,

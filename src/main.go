@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -79,6 +80,10 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
+		if reader.Size() <= 1 {
+			return
+		}
+
 		message := protocol.DecryptPacket(buf[:n])
 
 		switch message.Type {
@@ -113,11 +118,13 @@ func handleConnection(conn net.Conn) {
 			attribs := avatar.GetAvatarAttrib(session.UserId)
 			avatar := avatar.GetAvatarInfo(session.UserId)
 			guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
+			broadcastPacket := packets.BroadcastAnswerPacket{StatusCode: protocol.MASE_OK, MessageColor: 102, MessageText: "BOTZIN!!! - W.I.P! Quaisquer bugs, favor comunicar @mdolli no Discord!"}
 
 			conn.Write(user.Compose())
 			conn.Write(attribs.Compose())
 			conn.Write(avatar.Compose())
 			conn.Write(guiPacket.Compose())
+			conn.Write(broadcastPacket.Compose())
 
 			log.Debug().Msgf("Received User Boot Request: %s from User %d", hex.EncodeToString(message.Payload), session.UserId)
 		case protocol.UserDataRequest:
@@ -164,11 +171,63 @@ func handleConnection(conn net.Conn) {
 			avatarData := avatar.GetAvatarSetupData(userId)
 
 			conn.Write(avatarData.Compose())
+		case protocol.AvatarSetupSaveRequest:
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			parts := bytes.Split(message.Payload[1:], []byte{'\t'})
+
+			var itemIds []int
+			for _, raw := range parts {
+				itemIds = append(itemIds, data.SCR_StrToInt(raw))
+			}
+
+			log.Debug().Msgf("Received Avatar Setup Save Request from User Id %d %s", session.UserId, itemIds)
+
+			request := packets.AvatarSetupSaveRequestPacket{
+				ItemIds: itemIds,
+			}
+
+			avatarSaveResponse := avatar.SaveAvatarSetup(session.UserId, request)
+
+			conn.Write(avatarSaveResponse.Compose())
+		case protocol.AvatarAttribSaveRequest:
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			if err != nil {
+				return
+			}
+
+			parts := bytes.Split(message.Payload[1:], []byte{'\t'})
+
+			if len(parts) < 5 {
+				return
+			}
+
+			request := packets.AvatarAttribSaveRequestPacket{
+				BotId: data.SCR_StrToInt(parts[0]),
+				ST:    data.SCR_StrToInt(parts[1]),
+				DX:    data.SCR_StrToInt(parts[2]),
+				IQ:    data.SCR_StrToInt(parts[3]),
+				HT:    data.SCR_StrToInt(parts[4]),
+			}
+
+			attribSaveResponse := avatar.SaveAvatarAttrib(session.UserId, request)
+
+			conn.Write(attribSaveResponse.Compose())
+
 		default:
 			session := GetSession(conn)
 
 			if session != nil {
-				log.Debug().Msgf("Received Packet Type %d from User Id %d", message.Type.Code(), session.UserId)
+				log.Debug().Msgf("Received Packet %s", hex.Dump(message.Payload))
 			}
 		}
 	}

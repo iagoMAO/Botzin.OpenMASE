@@ -19,23 +19,7 @@ func (p ShopBuyAnswerPacket) Compose() []byte {
 
 	buf.WriteByte(0x09)
 
-	buf.Write(data.SCR_PackInt(p.Item.Class))
-	buf.WriteByte(0x09)
 	buf.Write(data.SCR_PackInt(p.Item.Id))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.ST))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.DX))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.IQ))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.HT))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.Payload))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.TheGen))
-	buf.WriteByte(0x09)
-	buf.Write(data.SCR_PackInt(p.Item.Enabled))
 
 	return protocol.EncryptPacket(protocol.ShopBuyAnswer, buf.Bytes(), protocol.MASE_OK)
 }

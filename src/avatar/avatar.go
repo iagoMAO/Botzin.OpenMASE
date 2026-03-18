@@ -1,8 +1,11 @@
 package avatar
 
 import (
+	"database/sql"
+
 	"github.com/iagoMAO/Botzin.OpenMASE/authentication"
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
+	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
 	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 	"github.com/rs/zerolog/log"
@@ -95,10 +98,10 @@ func GetAvatarInfo(id int) packets.AvatarSetupLoadAnswerPacket {
 			item.id,
 			userItem.user_id,
 			item.class,
-			item.st,
-			item.dx,
-			item.iq,
-			item.ht,
+			userItem.st,
+			userItem.dx,
+			userItem.iq,
+			userItem.ht,
 			item.payload,
 			item.the_gen,
 			userItem.enabled
@@ -151,6 +154,76 @@ func GetAvatarInfo(id int) packets.AvatarSetupLoadAnswerPacket {
 	}
 
 	return packet
+}
+
+func SaveAvatarSetup(userId int, request packets.AvatarSetupSaveRequestPacket) packets.AvatarSetupSaveAnswerPacket {
+	_, err := database.DB.Exec("UPDATE user_items SET enabled = 0 WHERE user_id = ?", userId)
+	if err != nil {
+		log.Error().Msgf("Failed to unequip items for user %d", userId)
+		return packets.AvatarSetupSaveAnswerPacket{
+			Status: protocol.MASE_ERROR,
+		}
+	}
+
+	for _, item := range request.ItemIds {
+		_, err = database.DB.Exec("UPDATE user_items SET enabled = 1 WHERE user_id = ? AND item_id = ?", userId, item)
+		if err != nil {
+			log.Error().Msgf("Failed to equip item %d for user %d", item, userId)
+			return packets.AvatarSetupSaveAnswerPacket{
+				Status: protocol.MASE_ERROR,
+			}
+		}
+
+	}
+
+	return packets.AvatarSetupSaveAnswerPacket{
+		Status: protocol.MASE_OK,
+	}
+}
+
+func SaveAvatarAttrib(userId int, request packets.AvatarAttribSaveRequestPacket) packets.AvatarAttribSaveAnswerPacket {
+	row := database.DB.QueryRow("SELECT id FROM user_items WHERE user_id = ? AND item_id = ?", userId, request.BotId)
+
+	var id int
+
+	err := row.Scan(&id)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warn().Msgf("User %d tried to update unowned bot %d", userId, request.BotId)
+		} else {
+			log.Error().Msgf("Database error: %s", err)
+		}
+		return packets.AvatarAttribSaveAnswerPacket{
+			Status: protocol.MASE_ERROR,
+		}
+	}
+
+	query := "UPDATE user_items SET st = ?, dx = ?, iq = ?, ht = ? WHERE user_id = ? AND id = ?"
+
+	_, err = database.DB.Exec(query, request.ST, request.DX, request.IQ, request.HT, userId, id)
+
+	if err != nil {
+		log.Debug().Msgf("Error: %s", err.Error())
+		return packets.AvatarAttribSaveAnswerPacket{
+			Status: protocol.MASE_ERROR,
+		}
+	}
+
+	query = "UPDATE users SET st = ?, dx = ?, iq = ?, ht = ? WHERE id = ?"
+
+	_, err = database.DB.Exec(query, request.ST, request.DX, request.IQ, request.HT, userId)
+
+	if err != nil {
+		log.Debug().Msgf("Error: %s", err.Error())
+		return packets.AvatarAttribSaveAnswerPacket{
+			Status: protocol.MASE_ERROR,
+		}
+	}
+
+	return packets.AvatarAttribSaveAnswerPacket{
+		Status: protocol.MASE_OK,
+	}
 }
 
 func GetAvatarAttrib(id int) packets.AvatarAttribLoadAnswerPacket {

@@ -72,6 +72,11 @@ func userItemsTable(db *sql.DB) {
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         item_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
+		xp INT DEFAULT 0,
+		st INT DEFAULT 0,
+		dx INT DEFAULT 0,
+		iq INT DEFAULT 0,
+		ht INT DEFAULT 0,
 		enabled INTEGER NOT NULL DEFAULT 0,
 		FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE

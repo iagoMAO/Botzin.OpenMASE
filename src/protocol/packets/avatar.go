@@ -25,6 +25,18 @@ type AvatarSetupLoadAnswerPacket struct {
 	Items            []AvatarItemData
 }
 
+type AvatarSetupSaveRequestPacket struct {
+	ItemIds []int
+}
+
+type AvatarSetupSaveAnswerPacket struct {
+	Status protocol.StatusCode
+}
+
+func (p AvatarSetupSaveAnswerPacket) Compose() []byte {
+	return protocol.EncryptPacket(protocol.AvatarSetupSaveAnswer, []byte{}, p.Status)
+}
+
 type ServerQueryAvatarAnswerPacket struct {
 	ClientGUID       int
 	TotalAvatarItems int
@@ -39,7 +51,7 @@ type ServerQueryAvatarAnswerPacket struct {
 	ranking          int
 }
 
-func createItemsPayload(totalItems int, items []AvatarItemData) []byte {
+func createItemsPayload(totalItems int, items []AvatarItemData, writeGen bool) []byte {
 	var buf bytes.Buffer
 
 	buf.Write(data.SCR_PackInt(totalItems))
@@ -64,8 +76,10 @@ func createItemsPayload(totalItems int, items []AvatarItemData) []byte {
 		buf.Write(data.SCR_PackInt(item.HT))
 		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Payload))
-		buf.WriteByte(0x09)
-		buf.Write(data.SCR_PackInt(item.TheGen))
+		if writeGen {
+			buf.WriteByte(0x09)
+			buf.Write(data.SCR_PackInt(item.TheGen))
+		}
 		buf.WriteByte(0x09)
 		buf.Write(data.SCR_PackInt(item.Enabled))
 
@@ -100,7 +114,7 @@ func (p ServerQueryAvatarAnswerPacket) Compose() []byte {
 
 	if p.TotalAvatarItems > 0 {
 		buf.WriteByte(0x09)
-		itemsData := createItemsPayload(p.TotalAvatarItems, p.Items)
+		itemsData := createItemsPayload(p.TotalAvatarItems, p.Items, true)
 		buf.Write(itemsData)
 	}
 
@@ -115,7 +129,7 @@ func (p AvatarSetupLoadAnswerPacket) Compose() []byte {
 		return protocol.EncryptPacket(protocol.AvatarSetupLoadAnswer, buf.Bytes(), protocol.MASE_OK)
 	}
 
-	itemsData := createItemsPayload(p.TotalAvatarItems, p.Items)
+	itemsData := createItemsPayload(p.TotalAvatarItems, p.Items, true)
 
 	buf.Write(itemsData)
 
@@ -128,6 +142,22 @@ type AvatarAttribLoadAnswerPacket struct {
 	DX string
 	IQ string
 	HT string
+}
+
+type AvatarAttribSaveRequestPacket struct {
+	BotId int
+	ST    int
+	DX    int
+	IQ    int
+	HT    int
+}
+
+type AvatarAttribSaveAnswerPacket struct {
+	Status protocol.StatusCode
+}
+
+func (p AvatarAttribSaveAnswerPacket) Compose() []byte {
+	return protocol.EncryptPacket(protocol.AvatarAttribSaveAnswer, []byte{}, p.Status)
 }
 
 func (p AvatarAttribLoadAnswerPacket) Compose() []byte {

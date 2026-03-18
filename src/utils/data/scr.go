@@ -4,6 +4,14 @@ import (
 	"strconv"
 )
 
+func SCR_StrToInt(data []byte) int {
+	val, err := strconv.Atoi(SCR_UnpackInt(data))
+	if err != nil {
+		return 0
+	}
+	return val
+}
+
 func SCR_UnpackInt(data []byte) string {
 	var result string
 
