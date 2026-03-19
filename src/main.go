@@ -45,10 +45,13 @@ func main() {
 		return
 	}
 
-	log.Info().Msgf("Successfully started listening on port %s.", cfg.MASE_PORT)
+	log.Info().Msgf("MASE - Successfully started listening on port %s.", cfg.MASE_PORT)
 
 	// Close the socket once we're done
 	defer listener.Close()
+
+	// HackBuster - has no functionality (for this). Sole purpose is so the client connects and allows rounds to complete.
+	StartHB()
 
 	for {
 		conn, err := listener.Accept()
