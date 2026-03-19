@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	MASE_PORT string
-	HB_PORT   string
-	XTEA_KEY  string
+	MASE_PORT       string
+	HB_PORT         string
+	BUDDY_PORT      string
+	SERVERLIST_PORT string
+	XTEA_KEY        string
 }
 
 func GetConfig() Config {
@@ -22,8 +24,10 @@ func GetConfig() Config {
 	}
 
 	return Config{
-		MASE_PORT: os.Getenv("MASE_PORT"),
-		HB_PORT:   os.Getenv("HB_PORT"),
-		XTEA_KEY:  os.Getenv("XTEA_KEY"),
+		MASE_PORT:       os.Getenv("MASE_PORT"),
+		HB_PORT:         os.Getenv("HB_PORT"),
+		BUDDY_PORT:      os.Getenv("BUDDY_PORT"),
+		SERVERLIST_PORT: os.Getenv("SERVERLIST_PORT"),
+		XTEA_KEY:        os.Getenv("XTEA_KEY"),
 	}
 }

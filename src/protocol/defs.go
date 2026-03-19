@@ -24,6 +24,11 @@ const (
 	UserBootRequest           PacketType = 10
 	UserDataRequest           PacketType = 6
 
+	BootBuddyAnswer   PacketType = 92
+	BootBuddyRequest  PacketType = 90
+	BootStatusAnswer  PacketType = 88
+	BootStatusRequest PacketType = 86
+
 	AvatarAttribLoadAnswer   PacketType = 110
 	AvatarAttribSaveAnswer   PacketType = 106
 	AvatarCheckPayLoadAnswer PacketType = 114

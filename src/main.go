@@ -51,7 +51,9 @@ func main() {
 	defer listener.Close()
 
 	// HackBuster - has no functionality (for this). Sole purpose is so the client connects and allows rounds to complete.
-	StartHB()
+	go StartHB()
+	go StartBuddyList()
+	go StartServerList()
 
 	for {
 		conn, err := listener.Accept()
