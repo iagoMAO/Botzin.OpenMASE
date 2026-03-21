@@ -30,12 +30,13 @@ func StartHB() {
 	// Close the socket once we're done
 	defer listener.Close()
 
+PacketLoop:
 	for {
 		_, err := listener.Accept()
 
 		if err != nil {
 			log.Error().Msgf("Error thrown whilst accepting connection: %s", err)
-			continue
+			continue PacketLoop
 		}
 	}
 }

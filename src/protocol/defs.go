@@ -29,6 +29,19 @@ const (
 	BootStatusAnswer  PacketType = 88
 	BootStatusRequest PacketType = 86
 
+	MasterServerGameTypesRequest  PacketType = 2
+	MasterServerGameTypesResponse PacketType = 4
+	MasterServerListRequest       PacketType = 6
+	MasterServerListResponse      PacketType = 8
+
+	GameMasterInfoRequest  PacketType = 10
+	GameMasterInfoResponse PacketType = 12
+	GamePingRequest        PacketType = 14
+	GamePingResponse       PacketType = 16
+	GameInfoRequest        PacketType = 18
+	GameInfoResponse       PacketType = 20
+	GameHeartbeat          PacketType = 22
+
 	AvatarAttribLoadAnswer   PacketType = 110
 	AvatarAttribSaveAnswer   PacketType = 106
 	AvatarCheckPayLoadAnswer PacketType = 114

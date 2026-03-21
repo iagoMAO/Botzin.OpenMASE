@@ -77,16 +77,17 @@ func handleConnection(conn net.Conn) {
 
 	reader := bufio.NewReader(conn)
 
+PacketLoop:
 	for {
 		n, err := reader.Read(buf)
 
 		if err != nil {
 			log.Error().Msgf("Read error: %s", err)
-			return
+			continue PacketLoop
 		}
 
 		if reader.Size() <= 1 {
-			return
+			continue PacketLoop
 		}
 
 		message := protocol.DecryptPacket(buf[:n])
@@ -116,7 +117,7 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			user := authentication.GetUserInfoPacket(session.UserId)
@@ -136,7 +137,7 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			user := authentication.GetUserInfoPacket(session.UserId)
@@ -147,7 +148,7 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			log.Debug().Msgf("Received Shop Buy Request from User Id %d", session.UserId)
@@ -155,7 +156,7 @@ func handleConnection(conn net.Conn) {
 			itemId, err := strconv.Atoi(data.SCR_UnpackInt(message.Payload[1:]))
 
 			if err != nil {
-				return
+				continue PacketLoop
 			}
 
 			packet := shop.BuyItem(session.UserId, itemId)
@@ -164,13 +165,13 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			userId, err := strconv.Atoi(data.SCR_UnpackInt(message.Payload[1:]))
 
 			if err != nil {
-				return
+				continue PacketLoop
 			}
 
 			avatarData := avatar.GetAvatarSetupData(userId)
@@ -180,7 +181,7 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			parts := bytes.Split(message.Payload[1:], []byte{'\t'})
@@ -203,17 +204,17 @@ func handleConnection(conn net.Conn) {
 			session := GetSession(conn)
 
 			if session == nil {
-				return
+				continue PacketLoop
 			}
 
 			if err != nil {
-				return
+				continue PacketLoop
 			}
 
 			parts := bytes.Split(message.Payload[1:], []byte{'\t'})
 
 			if len(parts) < 5 {
-				return
+				continue PacketLoop
 			}
 
 			request := packets.AvatarAttribSaveRequestPacket{

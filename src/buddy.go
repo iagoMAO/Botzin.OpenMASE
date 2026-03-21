@@ -94,7 +94,7 @@ func handleBuddyConnection(conn net.Conn) {
 		case protocol.BootStatusRequest:
 			log.Debug().Msgf("Received Boot Status: %s", hex.EncodeToString(message.Payload))
 		default:
-			log.Debug().Msgf("Received Packet %s - %d", hex.Dump(message.Payload), message.Type.Code())
+			// log.Debug().Msgf("Received Packet %s - %d", hex.Dump(message.Payload), message.Type.Code())
 		}
 	}
 }
