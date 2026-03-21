@@ -17,9 +17,9 @@ Reimplementação/emulador de servidor do finado MMO brasileiro Botzin!!! da Gre
 - [x] <b>Criptografia (MD5/XTEA)</b>
 - [x] Autenticação (Login/Cadastro)
 - [x] Inventário (Avatar/Loja)
-- [ ] MasterServer (Lista de Lobby)
+- [x] MasterServer (Lista de Lobby)
 - [ ] Progressão (Pontuação por Rounds, XP, etc...)
-- [ ] Broadcasts (Anûncios Globais)
+- [x] Broadcasts (Anûncios Globais)
 - [ ] Buddylist (Lista de Amigos)
 
 <br>
