@@ -24,10 +24,17 @@ const (
 	UserBootRequest           PacketType = 10
 	UserDataRequest           PacketType = 6
 
-	BootBuddyAnswer   PacketType = 92
-	BootBuddyRequest  PacketType = 90
-	BootStatusAnswer  PacketType = 88
-	BootStatusRequest PacketType = 86
+	BootBuddyAnswer    PacketType = 92
+	BootBuddyRequest   PacketType = 90
+	BootStatusAnswer   PacketType = 88
+	BootStatusRequest  PacketType = 86
+	BuddyResponse      PacketType = 98
+	FindContactAnswer  PacketType = 74
+	FindContactRequest PacketType = 72
+	AddContactAnswer   PacketType = 78
+	AddContactRequest  PacketType = 76
+	PrivateMessage     PacketType = 94
+	PublicMessage      PacketType = 96
 
 	MasterServerGameTypesRequest  PacketType = 2
 	MasterServerGameTypesResponse PacketType = 4

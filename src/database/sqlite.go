@@ -9,6 +9,26 @@ import (
 
 var DB *sql.DB
 
+func contactsTable(db *sql.DB) {
+	sqlStmt := `
+    CREATE TABLE IF NOT EXISTS contacts (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        contact_id INTEGER NOT NULL,
+		status INT DEFAULT 0,
+		FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+		FOREIGN KEY(contact_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    `
+	_, err := db.Exec(sqlStmt)
+	if err != nil {
+		log.Error().Msgf("Error creating contacts table: %s", err)
+		return
+	}
+
+	log.Info().Msg("Contacts table created successfully")
+}
+
 func itemsTable(db *sql.DB) {
 	sqlStmt := `
     CREATE TABLE IF NOT EXISTS items (
@@ -101,6 +121,7 @@ func Initialize() {
 	}
 
 	usersTable(DB)
+	contactsTable(DB)
 	itemsTable(DB)
 	userItemsTable(DB)
 }

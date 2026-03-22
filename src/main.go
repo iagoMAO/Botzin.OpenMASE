@@ -82,12 +82,12 @@ PacketLoop:
 		n, err := reader.Read(buf)
 
 		if err != nil {
-			log.Error().Msgf("Read error: %s", err)
-			continue PacketLoop
+			conn.Close()
+			return
 		}
 
 		if reader.Size() <= 1 {
-			continue PacketLoop
+			return
 		}
 
 		message := protocol.DecryptPacket(buf[:n])
@@ -119,6 +119,8 @@ PacketLoop:
 			if session == nil {
 				continue PacketLoop
 			}
+
+			session.SetStatus(BUDDY_STATUS_ONLINE)
 
 			user := authentication.GetUserInfoPacket(session.UserId)
 			attribs := avatar.GetAvatarAttrib(session.UserId)

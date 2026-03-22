@@ -8,7 +8,15 @@ import (
 // Session for a connected Player
 type Session struct {
 	UserId int
+	Status BuddyStatus
 	Conn   net.Conn
+}
+
+func (s Session) SetStatus(status BuddyStatus) {
+	sessionMutex.Lock()
+	defer sessionMutex.Unlock()
+	s.Status = status
+	activeSessions[s.Conn] = &s
 }
 
 var (
@@ -24,6 +32,20 @@ func CreateSession(conn net.Conn, userId int) {
 		UserId: userId,
 		Conn:   conn,
 	}
+}
+
+func GetSessionByUserId(userId int) *Session {
+	sessionMutex.RLock()
+	defer sessionMutex.RUnlock()
+
+	for _, session := range activeSessions {
+		if session.UserId == userId {
+			return session
+		}
+		return nil
+	}
+
+	return nil
 }
 
 func GetSession(conn net.Conn) *Session {
