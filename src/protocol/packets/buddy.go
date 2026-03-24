@@ -109,6 +109,25 @@ func (p BootBuddyAnswerPacket) Compose() []byte {
 	return protocol.EncryptPacket(protocol.BootBuddyAnswer, buf.Bytes(), p.Status)
 }
 
+type PublicMessagePacket struct {
+	Status  protocol.StatusCode
+	RoomId  int
+	Nick    string
+	Message string
+}
+
+func (p PublicMessagePacket) Compose() []byte {
+	var buf bytes.Buffer
+
+	buf.Write(data.SCR_PackInt(p.RoomId))
+	buf.WriteByte(0x09)
+	buf.WriteString(p.Message)
+	buf.WriteByte(0x09)
+	buf.WriteString(p.Nick)
+
+	return protocol.EncryptPacket(protocol.PublicMessage, buf.Bytes(), p.Status)
+}
+
 type PrivateMessagePacket struct {
 	Status  protocol.StatusCode
 	Contact BuddyContactInfo

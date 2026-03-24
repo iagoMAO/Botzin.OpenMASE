@@ -35,6 +35,10 @@ const (
 	BUDDY_STATUS_ONLINE   BuddyStatus = 100
 )
 
+var (
+	roomMessagePacketCache = make(map[int][]packets.PublicMessagePacket)
+)
+
 func RespondContact(userId int, contactId int, status BuddyStatus) {
 	query := `SELECT COUNT(*) FROM contacts WHERE user_id = ? AND contact_id = ?`
 
@@ -268,7 +272,7 @@ func handleBuddyConnection(conn net.Conn) {
 			conn.Write(protocol.EncryptPacket(protocol.LoginAnswer, []byte{}, protocol.MASE_OK))
 
 			if id != 0 {
-				CreateSession(conn, id)
+				RegisterConnection(conn, id, ConnTypeBUDDY)
 			}
 
 		case protocol.AddContactRequest:
@@ -298,8 +302,22 @@ func handleBuddyConnection(conn net.Conn) {
 
 			response := packets.AddContactAnswerPacket{
 				Status:              protocol.MASE_OK,
-				TotalContactsOnList: len(contacts),
+				TotalContactsOnList: len(contacts) + 1,
 				Contacts:            contacts,
+			}
+
+			buddySession := GetSessionByUserId(userId)
+
+			if buddySession != nil {
+				pending := GetUserContacts(userId, BUDDY_ANSWER_REQUEST)
+
+				pendingPacket := packets.BootStatusAnswerPacket{
+					Status:              protocol.StatusCode(BUDDY_ANSWER_REQUEST),
+					TotalContactsOnList: len(pending),
+					Contacts:            pending,
+				}
+
+				buddySession.BuddyConn.Write(pendingPacket.Compose())
 			}
 
 			conn.Write(response.Compose())
@@ -409,7 +427,9 @@ func handleBuddyConnection(conn net.Conn) {
 				Message: message,
 			}
 
-			buddySession.Conn.Write(packet.Compose())
+			if buddySession.BuddyConn != nil {
+				buddySession.BuddyConn.Write(packet.Compose())
+			}
 		case protocol.BuddyResponse:
 			log.Debug().Msgf("Received Buddy Response: %s", hex.EncodeToString(message.Payload))
 
@@ -426,6 +446,35 @@ func handleBuddyConnection(conn net.Conn) {
 
 			RespondContact(session.UserId, data.SCR_StrToInt(buddyId), BuddyStatus(status[0]))
 
+			buddySession := GetSessionByUserId(data.SCR_StrToInt(buddyId))
+			if buddySession != nil {
+				rejected := GetUserContacts(data.SCR_StrToInt(buddyId), BUDDY_ANSWER_REJECTED)
+				accepted := GetContacts(data.SCR_StrToInt(buddyId))
+				removed := GetUserContacts(data.SCR_StrToInt(buddyId), BUDDY_ANSWER_REMOVED)
+
+				rejectedPacket := packets.BootStatusAnswerPacket{
+					Status:              protocol.StatusCode(BUDDY_ANSWER_REJECTED),
+					TotalContactsOnList: len(rejected),
+					Contacts:            rejected,
+				}
+
+				acceptedPacket := packets.BootStatusAnswerPacket{
+					Status:              protocol.StatusCode(BUDDY_ANSWER_ACCEPTED),
+					TotalContactsOnList: len(accepted),
+					Contacts:            accepted,
+				}
+
+				removedPacket := packets.BootStatusAnswerPacket{
+					Status:              protocol.StatusCode(BUDDY_ANSWER_REMOVED),
+					TotalContactsOnList: len(removed),
+					Contacts:            removed,
+				}
+
+				buddySession.BuddyConn.Write(rejectedPacket.Compose())
+				buddySession.BuddyConn.Write(acceptedPacket.Compose())
+				buddySession.BuddyConn.Write(removedPacket.Compose())
+				buddySession.BuddyConn.Write(protocol.EncryptPacket(protocol.BootStatusAnswer, []byte{}, protocol.StatusCode(BUDDY_ENDOF_LIST)))
+			}
 		case protocol.BootStatusRequest:
 			log.Debug().Msgf("Received Boot Status: %s", hex.EncodeToString(message.Payload))
 
@@ -469,6 +518,47 @@ func handleBuddyConnection(conn net.Conn) {
 			conn.Write(acceptedPacket.Compose())
 			conn.Write(removedPacket.Compose())
 			conn.Write(protocol.EncryptPacket(protocol.BootStatusAnswer, []byte{}, protocol.StatusCode(BUDDY_ENDOF_LIST)))
+		case protocol.PublicMessage:
+			log.Debug().Msgf("Received Public Message: %s", hex.EncodeToString(message.Payload))
+
+			session := GetSession(conn)
+
+			if session == nil {
+				return
+			}
+
+			parts := bytes.Split(message.Payload[1:], []byte{'\t'})
+
+			roomId := data.SCR_StrToInt(parts[1])
+			message := string(parts[2])
+
+			user := authentication.GetUserInfo(session.UserId)
+
+			if len(message) <= 0 {
+				for _, packet := range roomMessagePacketCache[roomId] {
+					conn.Write(packet.Compose())
+				}
+				continue
+			}
+
+			packet := packets.PublicMessagePacket{
+				Status:  protocol.MASE_OK,
+				RoomId:  roomId,
+				Nick:    user.Nick,
+				Message: message,
+			}
+
+			if len(roomMessagePacketCache[roomId]) > 15 {
+				roomMessagePacketCache[roomId] = nil
+			}
+
+			roomMessagePacketCache[roomId] = append(roomMessagePacketCache[roomId], packet)
+
+			sessions := GetAllSessions()
+
+			for _, session := range sessions {
+				session.BuddyConn.Write(packet.Compose())
+			}
 		default:
 			log.Debug().Msgf("Received Packet %s - %d", hex.Dump(message.Payload), message.Type.Code())
 		}

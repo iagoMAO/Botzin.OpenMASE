@@ -111,7 +111,7 @@ PacketLoop:
 			conn.Write(login.Compose())
 
 			if id != 0 {
-				CreateSession(conn, id)
+				RegisterConnection(conn, id, ConnTypeMASE)
 			}
 		case protocol.UserBootRequest:
 			session := GetSession(conn)
