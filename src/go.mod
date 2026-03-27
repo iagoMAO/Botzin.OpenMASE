@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.34 // indirect

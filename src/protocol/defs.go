@@ -1,5 +1,21 @@
 package protocol
 
+type BuddyStatus byte
+
+func (p BuddyStatus) Code() byte { return byte(p) }
+
+const (
+	BUDDY_ANSWER_ACCEPTED BuddyStatus = 102
+	BUDDY_ANSWER_REJECTED BuddyStatus = 101
+	BUDDY_ANSWER_REMOVED  BuddyStatus = 103
+	BUDDY_ANSWER_REQUEST  BuddyStatus = 100
+	BUDDY_ENDOF_LIST      BuddyStatus = 200
+	BUDDY_SHOW_WINDOW     BuddyStatus = 0
+	BUDDY_STATUS_INGAME   BuddyStatus = 101
+	BUDDY_STATUS_OFFLINE  BuddyStatus = 102
+	BUDDY_STATUS_ONLINE   BuddyStatus = 100
+)
+
 type PacketType byte
 
 func (p PacketType) Code() byte { return byte(p) }

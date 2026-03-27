@@ -1,8 +1,10 @@
-package main
+package core
 
 import (
 	"net"
 	"sync"
+
+	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 )
 
 type ConnType int
@@ -15,7 +17,7 @@ const (
 // Session for a connected Player
 type Session struct {
 	UserId    int
-	Status    BuddyStatus
+	Status    protocol.BuddyStatus
 	Conn      net.Conn
 	BuddyConn net.Conn
 }
@@ -26,7 +28,7 @@ var (
 	sessionMutex   sync.RWMutex
 )
 
-func (s *Session) SetStatus(status BuddyStatus) {
+func (s *Session) SetStatus(status protocol.BuddyStatus) {
 	sessionMutex.Lock()
 	defer sessionMutex.Unlock()
 	s.Status = status
@@ -42,9 +44,10 @@ func RegisterConnection(conn net.Conn, userId int, connType ConnType) {
 		sessionsByUser[userId] = session
 	}
 
-	if connType == ConnTypeMASE {
+	switch connType {
+	case ConnTypeMASE:
 		session.Conn = conn
-	} else if connType == ConnTypeBUDDY {
+	case ConnTypeBUDDY:
 		session.BuddyConn = conn
 	}
 

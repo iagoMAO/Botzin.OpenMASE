@@ -7,14 +7,19 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"net"
-	"os"
+	"regexp"
 	"strconv"
+	"strings"
 
+	"github.com/chzyer/readline"
 	"github.com/iagoMAO/Botzin.OpenMASE/authentication"
 	"github.com/iagoMAO/Botzin.OpenMASE/avatar"
+	"github.com/iagoMAO/Botzin.OpenMASE/buddy"
+	"github.com/iagoMAO/Botzin.OpenMASE/core"
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
@@ -26,11 +31,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func main() {
-	// First and foremost, load our config.
-	cfg := utils.GetConfig()
+var cfg utils.Config
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+func main() {
+	// Initialize readline for input
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:          "> ",
+		HistoryFile:     "/tmp/mase.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+	})
+	if err != nil {
+		log.Error().Msgf("Error initializing readline: %s", err)
+	}
+	defer rl.Close()
+
+	// First and foremost, load our config.
+	cfg = utils.GetConfig()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: rl.Stdout()})
 
 	// Load our database
 	database.Initialize()
@@ -55,6 +74,8 @@ func main() {
 	go StartBuddyList()
 	go StartServerList()
 
+	go commandInput(rl)
+
 	for {
 		conn, err := listener.Accept()
 
@@ -67,9 +88,56 @@ func main() {
 	}
 }
 
+func commandInput(rl *readline.Instance) {
+	var regex = regexp.MustCompile(`^([a-zA-Z0-9_]+)\((.*)\)$`)
+
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			break
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		matches := regex.FindStringSubmatch(line)
+		if len(matches) < 3 {
+
+		}
+
+		command := matches[1]
+		argsStr := matches[2]
+
+		var args []string
+		if strings.TrimSpace(argsStr) != "" {
+			reader := csv.NewReader(strings.NewReader(argsStr))
+			reader.TrimLeadingSpace = true
+
+			parsed, err := reader.Read()
+			if err != nil {
+				continue
+			}
+			args = parsed
+		}
+		switch command {
+		case "broadcast":
+			if len(args) != 2 {
+				continue
+			}
+
+			message := args[0]
+			color := args[1]
+
+			buddy.BroadcastMessage(message, color)
+		}
+	}
+}
+
 func handleConnection(conn net.Conn) {
 	// Close once we're done, again
-	defer RemoveSession(conn)
+	defer core.RemoveSession(conn)
 	defer conn.Close()
 
 	// TODO: Maybe make this configurable?
@@ -111,22 +179,22 @@ PacketLoop:
 			conn.Write(login.Compose())
 
 			if id != 0 {
-				RegisterConnection(conn, id, ConnTypeMASE)
+				core.RegisterConnection(conn, id, core.ConnTypeMASE)
 			}
 		case protocol.UserBootRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
 			}
 
-			session.SetStatus(BUDDY_STATUS_ONLINE)
+			session.SetStatus(protocol.BUDDY_STATUS_ONLINE)
 
 			user := authentication.GetUserInfoPacket(session.UserId)
 			attribs := avatar.GetAvatarAttrib(session.UserId)
 			avatar := avatar.GetAvatarInfo(session.UserId)
 			guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
-			broadcastPacket := packets.BroadcastAnswerPacket{StatusCode: protocol.MASE_OK, MessageColor: 102, MessageText: "BOTZIN!!! - W.I.P! Quaisquer bugs, favor comunicar @mdolli no Discord!"}
+			broadcastPacket := packets.BroadcastAnswerPacket{StatusCode: protocol.MASE_OK, MessageColor: 102, MessageText: cfg.WELCOME_BROADCAST_MESSAGE}
 
 			conn.Write(user.Compose())
 			conn.Write(attribs.Compose())
@@ -136,7 +204,7 @@ PacketLoop:
 
 			log.Debug().Msgf("Received User Boot Request: %s from User %d", hex.EncodeToString(message.Payload), session.UserId)
 		case protocol.UserDataRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
@@ -147,7 +215,7 @@ PacketLoop:
 
 			log.Debug().Msgf("Received User Data Request: %s from User %d", hex.EncodeToString(message.Payload), session.UserId)
 		case protocol.ShopBuyRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
@@ -164,7 +232,7 @@ PacketLoop:
 			packet := shop.BuyItem(session.UserId, itemId)
 			conn.Write(packet.Compose())
 		case protocol.ServerQueryAvatarRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
@@ -180,7 +248,7 @@ PacketLoop:
 
 			conn.Write(avatarData.Compose())
 		case protocol.AvatarSetupSaveRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
@@ -203,7 +271,7 @@ PacketLoop:
 
 			conn.Write(avatarSaveResponse.Compose())
 		case protocol.AvatarAttribSaveRequest:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session == nil {
 				continue PacketLoop
@@ -232,7 +300,7 @@ PacketLoop:
 			conn.Write(attribSaveResponse.Compose())
 
 		default:
-			session := GetSession(conn)
+			session := core.GetSession(conn)
 
 			if session != nil {
 				log.Debug().Msgf("Received Packet %s", hex.Dump(message.Payload))
