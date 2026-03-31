@@ -102,9 +102,16 @@ PacketLoop:
 				continue PacketLoop
 			}
 
-			for _, lobby := range lobbies {
-				if lobby.Address == addr.String() {
-					continue PacketLoop
+			found := false
+			for i := range lobbies {
+				if lobbies[i].Address == addr.String() {
+					lobbies[i].MaxPlayers = response.MaxPlayers
+					lobbies[i].Status = response.Status
+					lobbies[i].BotCount = response.BotCount
+					lobbies[i].PlayerCount = response.PlayerCount
+					lobbies[i].LastSeen = time.Now().Unix()
+					found = true
+					break
 				}
 			}
 
@@ -118,25 +125,19 @@ PacketLoop:
 				LastSeen:    time.Now().Unix(),
 			}
 
-			lobbies = append(lobbies, newLobby)
+			if !found {
+				lobbies = append(lobbies, newLobby)
+			}
 
 			log.Debug().Msgf("%#v", response)
 		case protocol.GameHeartbeat:
 			log.Debug().Msg("server heartbeat")
 
-			var activeLobby *packets.Lobby
-
-			for _, lobby := range lobbies {
-				if lobby.Address == addr.String() {
-					activeLobby = &lobby
+			for i := range lobbies {
+				if lobbies[i].Address == addr.String() {
+					lobbies[i].LastSeen = time.Now().Unix()
 					break
-				} else {
-					continue
 				}
-			}
-
-			if activeLobby != nil {
-				activeLobby.LastSeen = time.Now().Unix()
 			}
 
 			response := packets.GameMasterInfoRequest{QueryFlags: uint8(10), Session: uint32(0), Key: uint32(0)}
@@ -174,7 +175,6 @@ PacketLoop:
 			req.MissionType = string(buffer[offset+1 : offset+int(buffer[offset])+1])
 			offset += int(buffer[offset]) + 1
 
-			log.Debug().Msgf("\n%s\n", hex.Dump(buffer))
 			log.Debug().Msgf("queryFlags: %d, session: %d, gameType: %s, missionType: %s", req.QueryFlags, req.Session, req.GameType, req.MissionType)
 
 			lobbyLevel, err := strconv.Atoi(req.MissionType)

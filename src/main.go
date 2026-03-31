@@ -180,6 +180,8 @@ PacketLoop:
 
 			if id != 0 {
 				core.RegisterConnection(conn, id, core.ConnTypeMASE)
+			} else {
+				conn.Close()
 			}
 		case protocol.UserBootRequest:
 			session := core.GetSession(conn)
