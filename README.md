@@ -2,7 +2,7 @@
 Reimplementação/emulador de servidor do finado MMO brasileiro Botzin!!! da Green Land Studios. 
 
 <p align="left">
-  <img style="max-height: 128px" src="docs/img/screenshot3.png" alt="Botzin!!! 1.17">
+  <img style="max-height: 128px" src="docs/img/screenshot6.png" alt="Botzin!!! 1.17">
   <img style="max-height: 128px" src="docs/img/screenshot2.png" alt="Botzin!!! 1.17">
 </p>
 
@@ -18,9 +18,9 @@ Reimplementação/emulador de servidor do finado MMO brasileiro Botzin!!! da Gre
 - [x] <b>Autenticação (Login/Cadastro)</b>
 - [x] <b>Inventário (Avatar/Loja)</b>
 - [x] <b>MasterServer (Lista de Lobby)</b>
-- [ ] Progressão (Pontuação por Rounds, XP, etc...)
 - [x] <b>Broadcasts (Anûncios Globais)</b>
-- [ ] Buddylist (Lista de Amigos)
+- [x] Buddylist (Lista de Amigos)
+- [ ] Progressão (Pontuação por Rounds, XP, etc...)
 
 <br>
 
