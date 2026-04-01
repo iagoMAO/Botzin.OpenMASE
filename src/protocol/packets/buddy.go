@@ -7,6 +7,12 @@ import (
 	"github.com/iagoMAO/Botzin.OpenMASE/utils/data"
 )
 
+type BuddyStatusList struct {
+	Online  []BuddyContactInfo
+	Ingame  []BuddyContactInfo
+	Offline []BuddyContactInfo
+}
+
 type BuddyContactInfo struct {
 	GUID int
 	Name string

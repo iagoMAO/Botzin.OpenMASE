@@ -246,6 +246,15 @@ PacketLoop:
 				continue PacketLoop
 			}
 
+			session.SetStatus(protocol.BUDDY_STATUS_INGAME)
+			contacts := buddy.GetContacts(userId)
+			for _, contact := range contacts {
+				userSession := core.GetSessionByUserId(contact.GUID)
+				if userSession != nil {
+					BootBuddyRequest(userSession)
+				}
+			}
+
 			avatarData := avatar.GetAvatarSetupData(userId)
 
 			conn.Write(avatarData.Compose())

@@ -1,10 +1,39 @@
 package buddy
 
 import (
+	"github.com/iagoMAO/Botzin.OpenMASE/core"
 	"github.com/iagoMAO/Botzin.OpenMASE/database"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol"
 	"github.com/iagoMAO/Botzin.OpenMASE/protocol/packets"
 )
+
+func GetCategorizedContacts(userId int) packets.BuddyStatusList {
+	contacts := GetContacts(userId)
+	capacity := len(contacts)
+
+	onlineContacts := make([]packets.BuddyContactInfo, 0, capacity)
+	ingameContacts := make([]packets.BuddyContactInfo, 0, capacity)
+	offlineContacts := make([]packets.BuddyContactInfo, 0, capacity)
+
+	for _, contact := range contacts {
+		session := core.GetSessionByUserId(contact.GUID)
+		if session == nil {
+			offlineContacts = append(offlineContacts, contact)
+			continue
+		}
+
+		switch session.Status {
+		case protocol.BUDDY_STATUS_ONLINE:
+			onlineContacts = append(onlineContacts, contact)
+		case protocol.BUDDY_STATUS_INGAME:
+			ingameContacts = append(ingameContacts, contact)
+		default:
+			offlineContacts = append(offlineContacts, contact)
+		}
+	}
+
+	return packets.BuddyStatusList{Online: onlineContacts, Ingame: ingameContacts, Offline: offlineContacts}
+}
 
 func RespondContact(userId int, contactId int, status protocol.BuddyStatus) {
 	query := `SELECT COUNT(*) FROM contacts WHERE user_id = ? AND contact_id = ?`
@@ -58,7 +87,39 @@ func AddContact(userId int, contactId int) error {
 	return nil
 }
 
-func GetUserContacts(userId int, status protocol.BuddyStatus) []packets.BuddyContactInfo {
+func GetIncomingRequests(userId int) []packets.BuddyContactInfo {
+	query := `
+		SELECT c.contact_id AS incoming_id, u.username AS incoming_name
+		FROM contacts c
+		JOIN users u ON c.contact_id = u.id
+		WHERE c.user_id = ? AND c.status = ?
+	`
+	rows, err := database.DB.Query(query, userId, protocol.BUDDY_ANSWER_REQUEST)
+
+	if err != nil {
+		return []packets.BuddyContactInfo{}
+	}
+
+	defer rows.Close()
+
+	var contacts []packets.BuddyContactInfo
+
+	for rows.Next() {
+		var contact packets.BuddyContactInfo
+		if err := rows.Scan(&contact.GUID, &contact.Name); err != nil {
+			return []packets.BuddyContactInfo{}
+		}
+		contacts = append(contacts, contact)
+	}
+
+	if err = rows.Err(); err != nil {
+		return []packets.BuddyContactInfo{}
+	}
+
+	return contacts
+}
+
+func GetOutgoingRequests(userId int, status protocol.BuddyStatus) []packets.BuddyContactInfo {
 	query := `
 		SELECT c.user_id AS friend_id, u.username AS friend_name 
 		FROM contacts c 

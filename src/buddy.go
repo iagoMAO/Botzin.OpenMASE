@@ -24,6 +24,41 @@ var (
 	roomMessagePacketCache = make(map[int][]packets.PublicMessagePacket)
 )
 
+func BootBuddyRequest(session *core.Session) {
+	buddies := buddy.GetCategorizedContacts(session.UserId)
+
+	onlinePacket := packets.BootBuddyAnswerPacket{
+		Status:              protocol.StatusCode(protocol.BUDDY_STATUS_ONLINE),
+		TotalContactsOnList: len(buddies.Online),
+		Contacts:            buddies.Online,
+	}
+
+	ingamePacket := packets.BootBuddyAnswerPacket{
+		Status:              protocol.StatusCode(protocol.BUDDY_STATUS_INGAME),
+		TotalContactsOnList: len(buddies.Ingame),
+		Contacts:            buddies.Ingame,
+	}
+
+	offlinePacket := packets.BootBuddyAnswerPacket{
+		Status:              protocol.StatusCode(protocol.BUDDY_STATUS_OFFLINE),
+		TotalContactsOnList: len(buddies.Offline),
+		Contacts:            buddies.Offline,
+	}
+
+	endPacket := packets.BootBuddyAnswerPacket{
+		Status:              protocol.StatusCode(protocol.BUDDY_ENDOF_LIST),
+		TotalContactsOnList: 0,
+	}
+
+	guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
+
+	session.BuddyConn.Write(onlinePacket.Compose())
+	session.BuddyConn.Write(ingamePacket.Compose())
+	session.BuddyConn.Write(offlinePacket.Compose())
+	session.BuddyConn.Write(endPacket.Compose())
+	session.BuddyConn.Write(guiPacket.Compose())
+}
+
 func StartBuddyList() {
 	// First and foremost, load our config.
 	cfg := utils.GetConfig()
@@ -135,7 +170,7 @@ func handleBuddyConnection(conn net.Conn) {
 			buddySession := core.GetSessionByUserId(userId)
 
 			if buddySession != nil {
-				pending := buddy.GetUserContacts(userId, protocol.BUDDY_ANSWER_REQUEST)
+				pending := buddy.GetOutgoingRequests(userId, protocol.BUDDY_ANSWER_REQUEST)
 
 				pendingPacket := packets.BootStatusAnswerPacket{
 					Status:              protocol.StatusCode(protocol.BUDDY_ANSWER_REQUEST),
@@ -184,38 +219,27 @@ func handleBuddyConnection(conn net.Conn) {
 				return
 			}
 
-			contacts := buddy.GetContacts(session.UserId)
+			BootBuddyRequest(session)
 
-			var onlineContacts []packets.BuddyContactInfo
-			for _, contact := range contacts {
+			buddies := buddy.GetCategorizedContacts(session.UserId)
+
+			for _, contact := range buddies.Online {
 				session := core.GetSessionByUserId(contact.GUID)
 				if session == nil {
 					continue
 				}
 
-				if session.Status == protocol.BUDDY_STATUS_ONLINE {
-					onlineContacts = append(onlineContacts, contact)
-				} else {
+				BootBuddyRequest(session)
+			}
+
+			for _, contact := range buddies.Ingame {
+				session := core.GetSessionByUserId(contact.GUID)
+				if session == nil {
 					continue
 				}
+
+				BootBuddyRequest(session)
 			}
-
-			onlinePacket := packets.BootBuddyAnswerPacket{
-				Status:              protocol.StatusCode(protocol.BUDDY_STATUS_INGAME),
-				TotalContactsOnList: len(onlineContacts),
-				Contacts:            onlineContacts,
-			}
-
-			endPacket := packets.BootBuddyAnswerPacket{
-				Status:              protocol.StatusCode(protocol.BUDDY_ENDOF_LIST),
-				TotalContactsOnList: 0,
-			}
-
-			guiPacket := packets.MaseShowGUIAnswerPacket{StatusCode: protocol.MASE_OK}
-
-			conn.Write(onlinePacket.Compose())
-			conn.Write(endPacket.Compose())
-			conn.Write(guiPacket.Compose())
 		case protocol.PrivateMessage:
 			log.Debug().Msgf("Received Private Message: %s", hex.EncodeToString(message.Payload))
 
@@ -271,7 +295,7 @@ func handleBuddyConnection(conn net.Conn) {
 			buddySession := core.GetSessionByUserId(data.SCR_StrToInt(buddyId))
 
 			if buddySession != nil {
-				contacts := buddy.GetUserContacts(data.SCR_StrToInt(buddyId), protocol.BuddyStatus(status[0]))
+				contacts := buddy.GetOutgoingRequests(data.SCR_StrToInt(buddyId), protocol.BuddyStatus(status[0]))
 				contactsPacket := packets.BootStatusAnswerPacket{
 					Status:              protocol.StatusCode(protocol.BuddyStatus(status[0])),
 					TotalContactsOnList: len(contacts),
@@ -290,10 +314,10 @@ func handleBuddyConnection(conn net.Conn) {
 				return
 			}
 
-			pending := buddy.GetUserContacts(session.UserId, protocol.BUDDY_ANSWER_REQUEST)
-			rejected := buddy.GetUserContacts(session.UserId, protocol.BUDDY_ANSWER_REJECTED)
-			accepted := buddy.GetUserContacts(session.UserId, protocol.BUDDY_ANSWER_ACCEPTED)
-			removed := buddy.GetUserContacts(session.UserId, protocol.BUDDY_ANSWER_REMOVED)
+			pending := buddy.GetIncomingRequests(session.UserId)
+			rejected := buddy.GetOutgoingRequests(session.UserId, protocol.BUDDY_ANSWER_REJECTED)
+			accepted := buddy.GetOutgoingRequests(session.UserId, protocol.BUDDY_ANSWER_ACCEPTED)
+			removed := buddy.GetOutgoingRequests(session.UserId, protocol.BUDDY_ANSWER_REMOVED)
 
 			pendingPacket := packets.BootStatusAnswerPacket{
 				Status:              protocol.StatusCode(protocol.BUDDY_ANSWER_REQUEST),

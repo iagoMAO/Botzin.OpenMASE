@@ -17,6 +17,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	Lobbies []packets.Lobby
+)
+
+func CloseServerConnection(listener net.PacketConn) {
+	// Before actually closing the connection, we need to remove this lobby (if it exists)
+	var activeLobbies []packets.Lobby
+
+	for i := range Lobbies {
+		if Lobbies[i].Address != listener.LocalAddr().String() {
+			activeLobbies = append(activeLobbies, Lobbies[i])
+		}
+	}
+
+	Lobbies = activeLobbies
+	listener.Close()
+}
+
 func StartServerList() {
 	// First and foremost, load our config.
 	cfg := utils.GetConfig()
@@ -33,11 +51,8 @@ func StartServerList() {
 
 	log.Info().Msgf("SERVERLIST - Successfully started listening on port %s.", cfg.SERVERLIST_PORT)
 
-	// Lobby list
-	lobbies := []packets.Lobby{}
-
 	// Close the socket once we're done
-	defer listener.Close()
+	defer CloseServerConnection(listener)
 
 	buffer := make([]byte, 1024)
 
@@ -103,13 +118,13 @@ PacketLoop:
 			}
 
 			found := false
-			for i := range lobbies {
-				if lobbies[i].Address == addr.String() {
-					lobbies[i].MaxPlayers = response.MaxPlayers
-					lobbies[i].Status = response.Status
-					lobbies[i].BotCount = response.BotCount
-					lobbies[i].PlayerCount = response.PlayerCount
-					lobbies[i].LastSeen = time.Now().Unix()
+			for i := range Lobbies {
+				if Lobbies[i].Address == addr.String() {
+					Lobbies[i].MaxPlayers = response.MaxPlayers
+					Lobbies[i].Status = response.Status
+					Lobbies[i].BotCount = response.BotCount
+					Lobbies[i].PlayerCount = response.PlayerCount
+					Lobbies[i].LastSeen = time.Now().Unix()
 					found = true
 					break
 				}
@@ -126,16 +141,16 @@ PacketLoop:
 			}
 
 			if !found {
-				lobbies = append(lobbies, newLobby)
+				Lobbies = append(Lobbies, newLobby)
 			}
 
 			log.Debug().Msgf("%#v", response)
 		case protocol.GameHeartbeat:
 			log.Debug().Msg("server heartbeat")
 
-			for i := range lobbies {
-				if lobbies[i].Address == addr.String() {
-					lobbies[i].LastSeen = time.Now().Unix()
+			for i := range Lobbies {
+				if Lobbies[i].Address == addr.String() {
+					Lobbies[i].LastSeen = time.Now().Unix()
 					break
 				}
 			}
@@ -187,7 +202,7 @@ PacketLoop:
 			var activeLobbies []packets.Lobby
 			now := time.Now()
 
-			for _, lobby := range lobbies {
+			for _, lobby := range Lobbies {
 				lastSeen := time.Unix(lobby.LastSeen, 0)
 				diff := now.Sub(lastSeen)
 
@@ -200,7 +215,7 @@ PacketLoop:
 				}
 			}
 
-			lobbies = activeLobbies
+			Lobbies = activeLobbies
 
 			response := packets.MasterServerListResponse{
 				PacketIndex: 0,
