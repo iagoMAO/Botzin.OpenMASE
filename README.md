@@ -19,7 +19,7 @@ Reimplementação/emulador de servidor do finado MMO brasileiro Botzin!!! da Gre
 - [x] <b>Inventário (Avatar/Loja)</b>
 - [x] <b>MasterServer (Lista de Lobby)</b>
 - [x] <b>Broadcasts (Anûncios Globais)</b>
-- [x] Buddylist (Lista de Amigos)
+- [x] <b>Buddylist (Lista de Amigos)</b>
 - [ ] Progressão (Pontuação por Rounds, XP, etc...)
 
 <br>
